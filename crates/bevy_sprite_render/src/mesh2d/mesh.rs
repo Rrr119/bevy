@@ -17,6 +17,7 @@ use bevy_render::{
 use bevy_shader::{load_shader_library, Shader, ShaderDefVal, ShaderSettings};
 
 use crate::{
+    light2d::{Light2dUniforms, Lighting2dUniform},
     prepare_pending_mesh_material2d_queues, tonemapping_pipeline_key, PendingMeshMaterial2dQueues,
     RenderMaterial2dInstances,
 };
@@ -463,13 +464,20 @@ pub fn init_mesh_2d_pipeline(
     let tonemapping_lut_entries = get_lut_bind_group_layout_entries();
     let view_layout = BindGroupLayoutDescriptor::new(
         "mesh2d_view_layout",
-        &BindGroupLayoutEntries::sequential(
+        &BindGroupLayoutEntries::with_indices(
             ShaderStages::VERTEX_FRAGMENT,
             (
-                uniform_buffer::<ViewUniform>(true),
-                uniform_buffer::<GlobalsUniform>(false),
-                tonemapping_lut_entries[0].visibility(ShaderStages::FRAGMENT),
-                tonemapping_lut_entries[1].visibility(ShaderStages::FRAGMENT),
+                (0, uniform_buffer::<ViewUniform>(true)),
+                (1, uniform_buffer::<GlobalsUniform>(false)),
+                (
+                    2,
+                    tonemapping_lut_entries[0].visibility(ShaderStages::FRAGMENT),
+                ),
+                (
+                    3,
+                    tonemapping_lut_entries[1].visibility(ShaderStages::FRAGMENT),
+                ),
+                (4, uniform_buffer::<Lighting2dUniform>(false)),
             ),
         ),
     );
@@ -969,11 +977,15 @@ pub fn prepare_mesh2d_view_bind_groups(
     tonemapping_luts: Res<TonemappingLuts>,
     images: Res<RenderAssets<GpuImage>>,
     fallback_image: Res<FallbackImage>,
+    light2d_uniforms: Res<Light2dUniforms>,
 ) {
     let (Some(view_binding), Some(globals)) = (
         view_uniforms.uniforms.binding(),
         globals_buffer.buffer.binding(),
     ) else {
+        return;
+    };
+    let Some(lighting) = light2d_uniforms.uniforms.binding() else {
         return;
     };
 
@@ -983,11 +995,12 @@ pub fn prepare_mesh2d_view_bind_groups(
         let view_bind_group = render_device.create_bind_group(
             "mesh2d_view_bind_group",
             &pipeline_cache.get_bind_group_layout(&mesh2d_pipeline.view_layout),
-            &BindGroupEntries::sequential((
-                view_binding.clone(),
-                globals.clone(),
-                lut_bindings.0,
-                lut_bindings.1,
+            &BindGroupEntries::with_indices((
+                (0, view_binding.clone()),
+                (1, globals.clone()),
+                (2, lut_bindings.0),
+                (3, lut_bindings.1),
+                (4, lighting.clone()),
             )),
         );
 

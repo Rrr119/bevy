@@ -866,6 +866,17 @@ category = "2D Rendering"
 wasm = true
 
 [[example]]
+name = "lighting_2d"
+path = "examples/2d/lighting_2d.rs"
+doc-scrape-examples = true
+
+[package.metadata.example.lighting_2d]
+name = "2D Lighting"
+description = "Shows normal-mapped 2D lighting with multiple point lights and dynamic shadows"
+category = "2D Rendering"
+wasm = true
+
+[[example]]
 name = "move_sprite"
 path = "examples/2d/move_sprite.rs"
 doc-scrape-examples = true

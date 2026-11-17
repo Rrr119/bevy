@@ -1,0 +1,17 @@
+{
+  "root": "/home/dev/feedback/uid22494",
+  "B": "/home/dev/feedback/uid22494",
+  "sha": "310e52ce06c3807c2b35c80ff70dbd7c70e66a3f",
+  "wslDistro": "Ubuntu-26.04",
+  "source": {
+    "owner": "bevyengine",
+    "repo": "bevy",
+    "sha": "310e52ce06c3807c2b35c80ff70dbd7c70e66a3f"
+  },
+  "fork": {
+    "owner": "Rrr119",
+    "repo": "bevy",
+    "cloneUrl": "https://github.com/Rrr119/bevy.git"
+  },
+  "at": "2026-11-17T01:42:05.063Z"
+}

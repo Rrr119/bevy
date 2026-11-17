@@ -17,6 +17,16 @@ use crate::TextureSlicer;
 pub struct Sprite {
     /// The image used to render the sprite
     pub image: Handle<Image>,
+    /// An optional tangent-space normal map used for 2D lighting.
+    ///
+    /// The normal map should use the same layout as [`Sprite::image`], including
+    /// any texture atlas layout or [`Sprite::rect`]. Normal maps are expected to
+    /// be stored in a linear texture format rather than an sRGB format.
+    ///
+    /// When no normal map is set, the sprite is treated as a flat surface facing
+    /// the camera.
+    #[template(built_in)]
+    pub normal_map: Option<Handle<Image>>,
     /// The (optional) texture atlas used to render the sprite
     #[template(built_in)]
     pub texture_atlas: Option<TextureAtlas>,

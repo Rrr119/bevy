@@ -11,6 +11,7 @@ import bevy_render::{
 };
 
 import package::render::sprite_view_bindings::view;
+import package::light2d::lighting as lighting_2d;
 
 struct VertexInput {
     @builtin(vertex_index) index: u32,
@@ -29,6 +30,7 @@ struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) uv: vec2<f32>,
     @location(1) @interpolate(flat) color: vec4<f32>,
+    @location(2) world_position: vec2<f32>,
 };
 
 @vertex
@@ -41,13 +43,16 @@ fn vertex(in: VertexInput) -> VertexOutput {
         0.0
     );
 
-    out.clip_position = view.clip_from_world * affine3_to_square(mat3x4<f32>(
+    let model = affine3_to_square(mat3x4<f32>(
         in.i_model_transpose_col0,
         in.i_model_transpose_col1,
         in.i_model_transpose_col2,
-    )) * vec4<f32>(vertex_position, 1.0);
+    ));
+    let world_position = model * vec4<f32>(vertex_position, 1.0);
+    out.clip_position = view.clip_from_world * world_position;
     out.uv = vec2<f32>(vertex_position.xy) * in.i_uv_offset_scale.zw + in.i_uv_offset_scale.xy;
     out.color = in.i_color;
+    out.world_position = world_position.xy;
 
     return out;
 }
@@ -58,6 +63,11 @@ fn vertex(in: VertexInput) -> VertexOutput {
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     var color = in.color * textureSample(sprite_texture, sprite_sampler, in.uv);
+    color = lighting_2d::apply_lighting_2d(
+        in.world_position,
+        lighting_2d::flat_normal_2d(),
+        color,
+    );
 
 @if(TONEMAP_IN_SHADER)
     color = tonemapping::tone_mapping(color, view.color_grading);

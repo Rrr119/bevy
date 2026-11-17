@@ -49,6 +49,8 @@ use bevy_utils::default;
 use bytemuck::{Pod, Zeroable};
 use fixedbitset::FixedBitSet;
 
+use crate::light2d::{Light2dUniforms, Lighting2dUniform};
+
 #[derive(Resource)]
 pub struct SpritePipeline {
     view_layout: BindGroupLayoutDescriptor,
@@ -60,12 +62,19 @@ pub fn init_sprite_pipeline(mut commands: Commands, asset_server: Res<AssetServe
     let tonemapping_lut_entries = get_lut_bind_group_layout_entries();
     let view_layout = BindGroupLayoutDescriptor::new(
         "sprite_view_layout",
-        &BindGroupLayoutEntries::sequential(
+        &BindGroupLayoutEntries::with_indices(
             ShaderStages::VERTEX_FRAGMENT,
             (
-                uniform_buffer::<ViewUniform>(true),
-                tonemapping_lut_entries[0].visibility(ShaderStages::FRAGMENT),
-                tonemapping_lut_entries[1].visibility(ShaderStages::FRAGMENT),
+                (0, uniform_buffer::<ViewUniform>(true)),
+                (
+                    1,
+                    tonemapping_lut_entries[0].visibility(ShaderStages::FRAGMENT),
+                ),
+                (
+                    2,
+                    tonemapping_lut_entries[1].visibility(ShaderStages::FRAGMENT),
+                ),
+                (4, uniform_buffer::<Lighting2dUniform>(false)),
             ),
         ),
     );
@@ -532,8 +541,12 @@ pub fn prepare_sprite_view_bind_groups(
     tonemapping_luts: Res<TonemappingLuts>,
     images: Res<RenderAssets<GpuImage>>,
     fallback_image: Res<FallbackImage>,
+    light2d_uniforms: Res<Light2dUniforms>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
+        return;
+    };
+    let Some(lighting) = light2d_uniforms.uniforms.binding() else {
         return;
     };
 
@@ -543,7 +556,12 @@ pub fn prepare_sprite_view_bind_groups(
         let view_bind_group = render_device.create_bind_group(
             "mesh2d_view_bind_group",
             &pipeline_cache.get_bind_group_layout(&sprite_pipeline.view_layout),
-            &BindGroupEntries::sequential((view_binding.clone(), lut_bindings.0, lut_bindings.1)),
+            &BindGroupEntries::with_indices((
+                (0, view_binding.clone()),
+                (1, lut_bindings.0),
+                (2, lut_bindings.1),
+                (4, lighting.clone()),
+            )),
         );
 
         commands.entity(entity).insert(SpriteViewBindGroup {

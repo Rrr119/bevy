@@ -10,4 +10,6 @@ struct VertexOutput {
     @if(VERTEX_COLORS)
     @location(4) color: vec4<f32>,
     @location(5) @interpolate(flat) instance_index: u32,
+    @location(6) world_tangent_2d: vec2<f32>,
+    @location(7) world_bitangent_2d: vec2<f32>,
 }

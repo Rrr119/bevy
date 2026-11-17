@@ -20,6 +20,8 @@ struct SpriteMaterialBindings {
     material: u32,          // 0
     texture: u32,           // 1
     texture_sampler: u32,   // 2
+    normal_map_texture: u32, // 3
+    normal_map_sampler: u32, // 4
 }
 
 const SPRITE_MATERIAL_FLAGS_ALPHA_MODE_RESERVED_BITS: u32 = 3221225472u; // (0b11u32 << 30)
@@ -31,3 +33,4 @@ const SPRITE_MATERIAL_FLAGS_FLIP_X: u32                   = 1u;
 const SPRITE_MATERIAL_FLAGS_FLIP_Y: u32                   = 2u;
 const SPRITE_MATERIAL_FLAGS_TILE_X: u32                   = 4u;
 const SPRITE_MATERIAL_FLAGS_TILE_Y: u32                   = 8u;
+const SPRITE_MATERIAL_FLAGS_NORMAL_MAP: u32               = 16u;

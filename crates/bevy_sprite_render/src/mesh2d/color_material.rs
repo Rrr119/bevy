@@ -36,7 +36,7 @@ impl Plugin for ColorMaterialPlugin {
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
 #[reflect(Default, Debug, Clone)]
 #[data(0, ColorMaterialUniform, binding_array(10))]
-#[bindless(index_table(range(0..3)))]
+#[bindless(index_table(range(0..5)))]
 pub struct ColorMaterial {
     pub color: Color,
     pub alpha_mode: AlphaMode2d,
@@ -44,6 +44,13 @@ pub struct ColorMaterial {
     #[texture(1)]
     #[sampler(2)]
     pub texture: Option<Handle<Image>>,
+    /// An optional tangent-space normal map used by 2D lighting.
+    ///
+    /// The normal map is sampled with the same UVs as [`ColorMaterial::texture`].
+    /// It should be stored in a linear texture format rather than an sRGB format.
+    #[texture(3)]
+    #[sampler(4)]
+    pub normal_map: Option<Handle<Image>>,
 }
 
 impl ColorMaterial {
@@ -59,6 +66,7 @@ impl Default for ColorMaterial {
             color: Color::WHITE,
             uv_transform: Affine2::default(),
             texture: None,
+            normal_map: None,
             // TODO should probably default to AlphaMask once supported?
             alpha_mode: AlphaMode2d::Blend,
         }
@@ -100,6 +108,7 @@ bitflags::bitflags! {
         const ALPHA_MODE_OPAQUE          = 0 << Self::ALPHA_MODE_SHIFT_BITS;
         const ALPHA_MODE_MASK            = 1 << Self::ALPHA_MODE_SHIFT_BITS;
         const ALPHA_MODE_BLEND           = 2 << Self::ALPHA_MODE_SHIFT_BITS;
+        const NORMAL_MAP                 = 1 << 2;
         const NONE                       = 0;
         const UNINITIALIZED              = 0xFFFF;
     }
@@ -124,6 +133,9 @@ impl AsBindGroupShaderType<ColorMaterialUniform> for ColorMaterial {
         let mut flags = ColorMaterialFlags::NONE;
         if self.texture.is_some() {
             flags |= ColorMaterialFlags::TEXTURE;
+        }
+        if self.normal_map.is_some() {
+            flags |= ColorMaterialFlags::NORMAL_MAP;
         }
 
         // Defaults to 0.5 like in 3d

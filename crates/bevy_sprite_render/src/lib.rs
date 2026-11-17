@@ -7,9 +7,24 @@
 )]
 
 //! Provides 2D sprite rendering functionality.
+//!
+//! # 2D lighting
+//!
+//! Sprites and [`ColorMaterial`] meshes are lit by the forward 2D lighting
+//! pipeline. Set [`bevy_sprite::Sprite::normal_map`] to shade surface detail,
+//! add [`PointLight2d`] components for local lights, and add
+//! [`LightOccluder2d`] polygons to cast shadows. [`AmbientLight2d`] controls
+//! global illumination.
+//!
+//! The default ambient light is white at full brightness, so existing scenes
+//! remain unchanged until lights or a darker ambient color are configured.
+//!
+//! Custom [`Material2d`] shaders can use the same lighting from
+//! `package::light2d::lighting` with their own surface normal.
 
 extern crate alloc;
 
+pub mod light2d;
 mod mesh2d;
 mod render;
 mod sprite_mesh;
@@ -23,12 +38,14 @@ mod tilemap_chunk;
 pub mod prelude {
     #[doc(hidden)]
     pub use crate::{
-        ColorMaterial, ExtendedMaterial2d, MaterialExtension2d, MeshMaterial2d, SpriteMaterial,
-        SpriteMaterialPlugin, SpriteMeshMaterial,
+        AmbientLight2d, ColorMaterial, ExtendedMaterial2d, Light2dPlugin, LightOccluder2d,
+        MaterialExtension2d, MeshMaterial2d, PointLight2d, SpriteMaterial, SpriteMaterialPlugin,
+        SpriteMeshMaterial, MAX_LIGHTS_2D, MAX_LIGHT_OCCLUDER_SEGMENTS_2D,
     };
 }
 
 use bevy_shader::load_shader_library;
+pub use light2d::*;
 pub use mesh2d::*;
 pub use render::*;
 pub use sprite_mesh::*;
@@ -62,6 +79,10 @@ impl Plugin for SpriteRenderPlugin {
 
         if !app.is_plugin_added::<TextureAtlasPlugin>() {
             app.add_plugins(TextureAtlasPlugin);
+        }
+
+        if !app.is_plugin_added::<Light2dPlugin>() {
+            app.add_plugins(Light2dPlugin);
         }
 
         app.add_plugins((

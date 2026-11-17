@@ -13,7 +13,13 @@ import package::sprite_mesh::{
 @if(BINDLESS)
 import package::sprite_mesh::bindings::material_indices;
 @if(!BINDLESS)
-import package::sprite_mesh::bindings::{texture, texture_sampler};
+import package::sprite_mesh::bindings::{
+    texture,
+    texture_sampler,
+    normal_map_texture,
+    normal_map_sampler,
+};
+import package::sprite_mesh::types::SPRITE_MATERIAL_FLAGS_NORMAL_MAP;
 import package::mesh2d::bindings::mesh;
 import bevy_render::bindless::{bindless_samplers_filtering, bindless_textures_2d};
 
@@ -36,6 +42,34 @@ fn sample_sprite_texture(uv: vec2<f32>, instance_index: u32) -> vec4<f32> {
     );
 @else
     return textureSample(texture, texture_sampler, final_uv);
+}
+
+/// Samples the sprite's tangent-space normal map.
+///
+/// Returns a flat normal when the sprite has no normal map.
+fn sample_sprite_normal_map(uv: vec2<f32>, instance_index: u32) -> vec3<f32> {
+@if(BINDLESS)
+    let slot = mesh[instance_index].material_bind_group_slot;
+@if(BINDLESS)
+    let flags = material[material_indices[slot].material].flags;
+@else
+    let flags = material.flags;
+
+    if (flags & SPRITE_MATERIAL_FLAGS_NORMAL_MAP) == 0u {
+        return vec3<f32>(0.0, 0.0, 1.0);
+    }
+
+    let final_uv = get_final_uv(uv, instance_index);
+@if(BINDLESS)
+    let sample = textureSample(
+        bindless_textures_2d[material_indices[slot].normal_map_texture],
+        bindless_samplers_filtering[material_indices[slot].normal_map_sampler],
+        final_uv
+    );
+@else
+    let sample = textureSample(normal_map_texture, normal_map_sampler, final_uv);
+
+    return sample.rgb * 2.0 - 1.0;
 }
 
 /// Applies tint and alpha discard to the sprite's color.

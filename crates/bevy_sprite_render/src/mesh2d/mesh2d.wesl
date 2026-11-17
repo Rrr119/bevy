@@ -28,6 +28,10 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     );
 @if(VERTEX_POSITIONS)
     out.position = mesh_functions::mesh2d_position_world_to_clip(out.world_position);
+@if(VERTEX_POSITIONS)
+    out.world_tangent_2d = world_from_local[0].xy;
+@if(VERTEX_POSITIONS)
+    out.world_bitangent_2d = world_from_local[1].xy;
 
 @if(VERTEX_NORMALS)
     out.world_normal = mesh_functions::mesh2d_normal_local_to_world(uncompressed_vertex.normal, vertex.instance_index);

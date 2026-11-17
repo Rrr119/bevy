@@ -3,6 +3,7 @@ import package::mesh2d::{
     view_bindings::view,
     bindings::mesh,
 };
+import package::light2d::lighting as lighting_2d;
 import bevy_render::bindless::{bindless_samplers_filtering, bindless_textures_2d};
 
 @if(TONEMAP_IN_SHADER)
@@ -26,6 +27,8 @@ struct ColorMaterialBindings {
     material: u32,          // 0
     color_texture: u32,     // 1
     color_sampler: u32,     // 2
+    normal_map_texture: u32, // 3
+    normal_map_sampler: u32, // 4
 }
 
 @group(constants::MATERIAL_BIND_GROUP) @binding(0) var<storage> color_material_indices:
@@ -36,9 +39,12 @@ struct ColorMaterialBindings {
 @group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> material: ColorMaterial;
 @group(constants::MATERIAL_BIND_GROUP) @binding(1) var texture: texture_2d<f32>;
 @group(constants::MATERIAL_BIND_GROUP) @binding(2) var texture_sampler: sampler;
+@group(constants::MATERIAL_BIND_GROUP) @binding(3) var normal_map_texture: texture_2d<f32>;
+@group(constants::MATERIAL_BIND_GROUP) @binding(4) var normal_map_sampler: sampler;
 }
 
 const COLOR_MATERIAL_FLAGS_TEXTURE_BIT: u32              = 1u;
+const COLOR_MATERIAL_FLAGS_NORMAL_MAP_BIT: u32           = 4u;
 const COLOR_MATERIAL_FLAGS_ALPHA_MODE_RESERVED_BITS: u32 = 3221225472u; // (0b11u32 << 30)
 const COLOR_MATERIAL_FLAGS_ALPHA_MODE_OPAQUE: u32        = 0u;          // (0u32 << 30)
 const COLOR_MATERIAL_FLAGS_ALPHA_MODE_MASK: u32          = 1073741824u; // (1u32 << 30)
@@ -85,6 +91,31 @@ fn fragment(
     }
 
     output_color = alpha_discard(flags, alpha_cutoff, output_color);
+
+    var world_normal = lighting_2d::flat_normal_2d();
+    if ((flags & COLOR_MATERIAL_FLAGS_NORMAL_MAP_BIT) != 0u) {
+        @if(BINDLESS)
+        let normal_sample = textureSample(
+            bindless_textures_2d[color_material_indices[slot].normal_map_texture],
+            bindless_samplers_filtering[color_material_indices[slot].normal_map_sampler],
+            uv
+        );
+        @else
+        let normal_sample = textureSample(normal_map_texture, normal_map_sampler, uv);
+
+        let tangent_normal = lighting_2d::sample_normal_map_2d(normal_sample);
+        world_normal = lighting_2d::tangent_space_normal_to_world_2d(
+            tangent_normal,
+            in.world_tangent_2d,
+            in.world_bitangent_2d,
+        );
+    }
+
+    output_color = lighting_2d::apply_lighting_2d(
+        in.world_position.xy,
+        world_normal,
+        output_color,
+    );
 
 @if(TONEMAP_IN_SHADER)
     output_color = tonemapping::tone_mapping(output_color, view.color_grading);

@@ -32,11 +32,15 @@ impl Plugin for SpriteMeshMaterialPlugin {
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone, Default, PartialEq)]
 #[reflect(Debug, Clone)]
 #[data(0, SpriteMeshMaterialUniform, binding_array(10))]
-#[bindless(index_table(range(0..3)))]
+#[bindless(index_table(range(0..5)))]
 pub struct SpriteMeshMaterial {
     #[texture(1)]
     #[sampler(2)]
     pub image: Handle<Image>,
+    /// Optional tangent-space normal map used by 2D lighting.
+    #[texture(3)]
+    #[sampler(4)]
+    pub normal_map: Option<Handle<Image>>,
     pub texture_atlas: Option<TextureAtlas>,
     pub color: Color,
     pub flip_x: bool,
@@ -65,6 +69,7 @@ bitflags::bitflags! {
         const ALPHA_MODE_OPAQUE          = 0 << Self::ALPHA_MODE_SHIFT_BITS;
         const ALPHA_MODE_MASK            = 1 << Self::ALPHA_MODE_SHIFT_BITS;
         const ALPHA_MODE_BLEND           = 2 << Self::ALPHA_MODE_SHIFT_BITS;
+        const NORMAL_MAP                 = 1 << 4;
         const NONE                       = 0;
         const UNINITIALIZED              = 0xFFFF;
     }
@@ -120,6 +125,9 @@ impl AsBindGroupShaderType<SpriteMeshMaterialUniform> for SpriteMeshMaterial {
         }
         if self.flip_y {
             flags |= SpriteMeshMaterialFlags::FLIP_Y;
+        }
+        if self.normal_map.is_some() {
+            flags |= SpriteMeshMaterialFlags::NORMAL_MAP;
         }
 
         let mut image_size = image.size_2d().as_vec2();
@@ -345,6 +353,7 @@ impl SpriteMeshMaterial {
 
         SpriteMeshMaterial {
             image: sprite.image,
+            normal_map: sprite.normal_map,
             texture_atlas: sprite.texture_atlas,
             color: sprite.color,
             flip_x: sprite.flip_x,

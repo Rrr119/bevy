@@ -7,6 +7,7 @@ import package::{
     sprite_mesh::bindings::material,
     sprite_mesh::functions as sprite_functions,
 };
+import package::light2d::lighting as lighting_2d;
 @if(BINDLESS)
 import package::sprite_mesh::bindings::material_indices;
 
@@ -49,6 +50,10 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     );
 @if(VERTEX_POSITIONS)
     out.position = mesh_functions::mesh2d_position_world_to_clip(out.world_position);
+@if(VERTEX_POSITIONS)
+    out.world_tangent_2d = world_from_local[0].xy;
+@if(VERTEX_POSITIONS)
+    out.world_bitangent_2d = world_from_local[1].xy;
 
 @if(VERTEX_NORMALS)
     out.world_normal = mesh_functions::mesh2d_normal_local_to_world(uncompressed_vertex.normal, vertex.instance_index);
@@ -72,6 +77,24 @@ fn fragment(
     mesh: VertexOutput,
 ) -> @location(0) vec4<f32> {
     var output_color = sprite_functions::sample_final_color(mesh.uv, mesh.instance_index);
+
+@if(VERTEX_POSITIONS)
+    let tangent_normal = sprite_functions::sample_sprite_normal_map(
+        mesh.uv,
+        mesh.instance_index,
+    );
+@if(VERTEX_POSITIONS)
+    let world_normal = lighting_2d::tangent_space_normal_to_world_2d(
+        tangent_normal,
+        mesh.world_tangent_2d,
+        mesh.world_bitangent_2d,
+    );
+@if(VERTEX_POSITIONS)
+    output_color = lighting_2d::apply_lighting_2d(
+        mesh.world_position.xy,
+        world_normal,
+        output_color,
+    );
 
 @if(TONEMAP_IN_SHADER)
     output_color = tonemapping::tone_mapping(output_color, view.color_grading);
